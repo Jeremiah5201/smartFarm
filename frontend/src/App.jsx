@@ -28,6 +28,7 @@ function MetricCard({ field, label, unit, tone, value }) {
 
 function App() {
   const [farmId, setFarmId] = useState("");
+  const [slide, setSlide] = useState(0);
   const [commandState, setCommandState] = useState({ saving: false, message: "", error: "" });
   const { farms, latest, readings, history, health, latestError, loading, refreshing, error, reload } = useFarmData(farmId);
   const selectedFarm = useMemo(() => farms.find((farm) => farm.farm_id === (farmId || farms[0]?.farm_id)), [farms, farmId]);
@@ -36,6 +37,11 @@ function App() {
   useEffect(() => {
     if (!farmId && farms[0]?.farm_id) setFarmId(farms[0].farm_id);
   }, [farms, farmId]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setSlide((current) => (current + 1) % 3), 6000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   async function submitOverride(event) {
     event.preventDefault();
@@ -73,7 +79,9 @@ function App() {
         {!loading && !error && farms.length === 0 && <section className="state-panel"><h2>No farms registered</h2><p>Create a farm through the backend API before opening the dashboard.</p></section>}
 
         {!loading && !error && selectedFarm && <>
-          <section className="hero-strip" id="overview"><div><span className="status-chip"><span className={`pulse ${latest ? "" : "offline"}`} /> {latest ? "Telemetry received" : "Waiting for telemetry"}</span><h2>{selectedFarm.farm_name}</h2><p>{selectedFarm.location || "Location not configured"} <span className="separator">/</span> {selectedFarm.crop || "Crop not configured"}</p></div><div className="hero-meta"><span>LAST TELEMETRY</span><strong>{formatTime(latest?.timestamp)}</strong><span className="device-id">{selectedFarm.device_id}</span></div></section>
+          <section className="hero-strip" id="overview"><div className="hero-copy"><span className="status-chip"><span className={`pulse ${latest ? "" : "offline"}`} /> {latest ? "Telemetry received" : "Waiting for telemetry"}</span><h2>{selectedFarm.farm_name}</h2><p>{selectedFarm.location || "Location not configured"} <span className="separator">/</span> {selectedFarm.crop || "Crop not configured"}</p></div><div className="hero-visual" style={{ backgroundImage: `url(https://images.unsplash.com/photo-${["1500937386664-56d1dfef3854", "1464226184884-fa280b87c399", "1499529112087-3cb3b73cec95"][slide]}?auto=format&fit=crop&w=900&q=80)` }}><div className="visual-overlay"><span>FIELD VIEW 0{slide + 1}</span><strong>Growing conditions, at a glance.</strong><div className="slider-dots">{[0, 1, 2].map((item) => <button key={item} className={item === slide ? "active" : ""} onClick={() => setSlide(item)} aria-label={`Show field view ${item + 1}`} />)}</div></div></div><div className="hero-meta"><span>LAST TELEMETRY</span><strong>{formatTime(latest?.timestamp)}</strong><span className="device-id">{selectedFarm.device_id}</span></div></section>
+
+          <div className="status-marquee" aria-label="SmartFarm status updates"><div><span>SMARTFARM LIVE</span><i /> Soil intelligence <i /> Closed-loop irrigation <i /> Field telemetry synced <i /> Weather-ready data <i /> SMARTFARM LIVE <i /> Soil intelligence <i /> Closed-loop irrigation</div></div>
 
           <section className="section-block"><div className="section-heading"><div><p className="eyebrow">LIVE CONDITIONS</p><h2>Sensor readings</h2></div><span className="updated">Updated {formatTime(latest?.timestamp)}</span></div>{latestError && <p className="inline-warning">Latest reading unavailable: {latestError}</p>}<div className="metric-grid">{metricCards.map(([field, label, unit, tone]) => <MetricCard key={field} field={field} label={label} unit={unit} tone={tone} value={latest?.[field]} />)}<MetricCard field="rain_detected" label="Rain status" unit="" tone="blue" value={latest ? (latest.rain_detected ? "Detected" : "Clear") : null} /></div></section>
 
