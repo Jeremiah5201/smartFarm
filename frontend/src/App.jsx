@@ -30,7 +30,7 @@ function App() {
   const [farmId, setFarmId] = useState("");
   const [slide, setSlide] = useState(0);
   const [commandState, setCommandState] = useState({ saving: false, message: "", error: "" });
-  const { farms, latest, readings, history, health, latestError, loading, refreshing, error, reload } = useFarmData(farmId);
+  const { farms, latest, readings, history, advisory, weather, smsHistory, health, latestError, loading, refreshing, error, reload } = useFarmData(farmId);
   const selectedFarm = useMemo(() => farms.find((farm) => farm.farm_id === (farmId || farms[0]?.farm_id)), [farms, farmId]);
   const activeFarmId = selectedFarm?.farm_id;
 
@@ -51,7 +51,7 @@ function App() {
     try {
       await api.override(activeFarmId, {
         pump: form.get("pump") === "on",
-        duration_sec: Number(form.get("duration_sec")),
+        duration_seconds: Number(form.get("duration_sec")),
         reason: form.get("reason"),
         force_override: false,
       });
@@ -89,7 +89,7 @@ function App() {
             <div className="panel" id="activity"><div className="panel-heading"><div><p className="eyebrow">RECENT EVENTS</p><h2>Irrigation history</h2></div><span className="event-count">{history.length} events</span></div>{history.length === 0 ? <div className="empty-state">No irrigation events recorded yet.</div> : <div className="event-list">{history.map((event) => <div className="event-row" key={event.command_id || event.timestamp}><span className={`event-marker ${event.pump_status ? "on" : "off"}`} /><div><strong>{event.pump_status ? "Pump activated" : "Pump stopped"}</strong><p>{event.reason}</p></div><time>{formatTime(event.timestamp)}<br /><b>{event.duration_sec}s</b></time></div>)}</div>}</div></section>
 
           <section className="section-block readings-section"><div className="section-heading"><div><p className="eyebrow">DATABASE HISTORY</p><h2>Recent telemetry</h2></div><span className="updated">{readings.length} readings loaded</span></div><div className="table-wrap"><table><thead><tr><th>Timestamp</th><th>Moisture</th><th>pH</th><th>Temperature</th><th>Humidity</th><th>Rain</th></tr></thead><tbody>{readings.map((reading) => <tr key={`${reading.timestamp}-${reading.device_id}`}><td>{formatTime(reading.timestamp)}</td><td>{reading.soil_moisture}%</td><td>{reading.soil_ph}</td><td>{reading.temperature}°C</td><td>{reading.humidity}%</td><td><span className={`rain-tag ${reading.rain_detected ? "yes" : "no"}`}>{reading.rain_detected ? "Detected" : "Clear"}</span></td></tr>)}</tbody></table>{readings.length === 0 && <div className="empty-state">Telemetry will appear here after the ESP32 publishes a reading.</div>}</div></section>
-          <section className="coming-soon"><span>MEMBER 3 + MEMBER 4 INTEGRATION</span><strong>Advisories, weather and SMS history will appear here when their API endpoints are connected.</strong></section>
+          <section className="insight-grid"><div className="insight-panel"><p className="eyebrow">FIELD ADVISORY</p><h2>{advisory[0]?.type || "No advisory yet"}</h2><p>{advisory[0]?.message || "The intelligence service has not published a recommendation."}</p><span className="insight-meta">{advisory[0]?.severity || "WAITING"}</span></div><div className="insight-panel weather-panel"><p className="eyebrow">WEATHER CONTEXT</p><h2>{weather ? `${weather.temperature}°C · ${weather.description}` : "Weather unavailable"}</h2><p>{weather ? `Rain probability ${weather.rain_probability}% in ${weather.location}.` : "Connect the weather service to show forecast context."}</p><span className="insight-meta">{weather?.source || "NOT CONNECTED"}</span></div><div className="insight-panel"><p className="eyebrow">SMS HISTORY</p><h2>{smsHistory.length ? `${smsHistory.length} messages` : "No messages yet"}</h2><p>{smsHistory.length ? "Recent farmer notifications are available." : "SMS notifications will appear after the advisory service sends one."}</p><span className="insight-meta">FARMER ALERTS</span></div></section>
         </>}
       </main>
     </div>

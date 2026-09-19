@@ -18,4 +18,10 @@ describe("SmartFarm API client", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 404, json: async () => ({ detail: "farm not found" }) }));
     await expect(api.latest("UNKNOWN")).rejects.toThrow("farm not found");
   });
+
+  it("uses the live irrigation command route", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) }));
+    await api.override("FARM001", { pump: true, duration_seconds: 30 });
+    expect(fetch).toHaveBeenCalledWith("/api/farms/FARM001/command", expect.objectContaining({ method: "POST" }));
+  });
 });

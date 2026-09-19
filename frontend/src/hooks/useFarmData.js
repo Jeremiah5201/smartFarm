@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "../services/api";
 
 export function useFarmData(farmId) {
-  const [data, setData] = useState({ farms: [], latest: null, readings: [], history: [], health: null, latestError: "" });
+  const [data, setData] = useState({ farms: [], latest: null, readings: [], history: [], advisory: [], weather: null, smsHistory: [], health: null, latestError: "" });
   const [state, setState] = useState({ loading: true, error: "", refreshing: false });
 
   const load = useCallback(async (refresh = false) => {
@@ -11,14 +11,17 @@ export function useFarmData(farmId) {
       const [farms, health] = await Promise.all([api.farms(), api.health()]);
       const selectedFarmId = farmId || farms[0]?.farm_id;
       if (!selectedFarmId) {
-        setData({ farms, latest: null, readings: [], history: [], health, latestError: "" });
+        setData({ farms, latest: null, readings: [], history: [], advisory: [], weather: null, smsHistory: [], health, latestError: "" });
       } else {
-        const [latestResult, readings, history] = await Promise.all([
+        const [latestResult, readings, history, advisory, weather, smsHistory] = await Promise.all([
           api.latest(selectedFarmId).then((value) => ({ value, error: "" })).catch((error) => ({ value: null, error: error.message })),
           api.readings(selectedFarmId),
           api.irrigationHistory(selectedFarmId),
+          api.advisory(selectedFarmId).catch(() => []),
+          api.weather(selectedFarmId).catch(() => null),
+          api.smsHistory(selectedFarmId).catch(() => []),
         ]);
-        setData({ farms, latest: latestResult.value, readings, history, health, latestError: latestResult.error });
+        setData({ farms, latest: latestResult.value, readings, history, advisory, weather, smsHistory, health, latestError: latestResult.error });
       }
     } catch (error) {
       setState((current) => ({ ...current, error: error.message || "Could not reach the backend." }));

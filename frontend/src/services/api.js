@@ -24,8 +24,11 @@ export const api = {
   farms: () => request("/api/farms"),
   latest: (farmId) => request(`/api/farms/${farmId}/latest`),
   readings: (farmId, limit = 12) => request(`/api/farms/${farmId}/readings?limit=${limit}`),
-  irrigationHistory: (farmId, limit = 8) => request(`/api/irrigation/${farmId}/history?limit=${limit}`),
-  override: (farmId, command) => request(`/api/irrigation/${farmId}/override`, {
+  irrigationHistory: (farmId, limit = 8) => request(`/api/farms/${farmId}/irrigation?limit=${limit}`),
+  advisory: (farmId) => request(`/api/farms/${farmId}/advisory`),
+  weather: (farmId) => request(`/api/farms/${farmId}/weather`),
+  smsHistory: (farmId) => request(`/api/farms/${farmId}/sms-history`),
+  override: (farmId, command) => request(`/api/farms/${farmId}/command`, {
     method: "POST",
     body: JSON.stringify(command),
   }),
