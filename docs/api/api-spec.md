@@ -12,6 +12,19 @@ OpenAPI documentation at `/docs`.
 - `POST /api/farms/{farm_id}/telemetry` validates and stores one reading.
 - `GET /api/farms/{farm_id}/latest` returns the newest reading.
 - `GET /api/farms/{farm_id}/readings?limit=50` returns recent readings.
+- `GET /api/irrigation/{farm_id}/history?limit=50` returns irrigation events.
+- `POST /api/irrigation/{farm_id}/override` records and publishes a manual command.
+
+Manual command example:
+
+```json
+{
+	"pump": true,
+	"duration_sec": 45,
+	"reason": "Operator confirmed dry soil",
+	"force_override": false
+}
+```
 
 Example telemetry request:
 

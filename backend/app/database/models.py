@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.database import Base
@@ -32,6 +32,7 @@ class Farm(Base):
 
 class SensorReading(Base):
     __tablename__ = "sensor_readings"
+    __table_args__ = (Index("ix_sensor_readings_farm_timestamp", "farm_id", "timestamp"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     farm_id: Mapped[str] = mapped_column(ForeignKey("farms.farm_id"), index=True)
@@ -46,3 +47,20 @@ class SensorReading(Base):
     water_level: Mapped[float] = mapped_column(Float)
     pump_status: Mapped[bool] = mapped_column(Boolean)
     farm: Mapped[Farm] = relationship(back_populates="readings")
+
+
+class IrrigationEvent(Base):
+    __tablename__ = "irrigation_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    farm_id: Mapped[str] = mapped_column(ForeignKey("farms.farm_id"), index=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    duration_seconds: Mapped[int] = mapped_column(Integer)
+    reason: Mapped[str] = mapped_column(String(500))
+    pump_status: Mapped[bool] = mapped_column(Boolean)
+    command_id: Mapped[str | None] = mapped_column(String(80), nullable=True, unique=True)
+    farm: Mapped[Farm] = relationship()
+
+    @property
+    def duration_sec(self) -> int:
+        return self.duration_seconds

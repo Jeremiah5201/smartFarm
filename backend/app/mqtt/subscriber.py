@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import datetime, timezone
 
 import paho.mqtt.client as mqtt
 from sqlalchemy.orm import Session
@@ -8,6 +9,7 @@ from app.api.schemas import TelemetryPayload
 from app.config import settings
 from app.database.database import SessionLocal
 from app.services.ingestion import save_telemetry
+from app.mqtt.topics import COMMAND_TOPIC, TELEMETRY_TOPIC
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +37,8 @@ class TelemetrySubscriber:
         if reason_code.is_failure:
             logger.error("MQTT connection failed: %s", reason_code)
             return
-        client.subscribe("smartfarm/+/telemetry")
-        logger.info("Subscribed to smartfarm/+/telemetry")
+        client.subscribe(TELEMETRY_TOPIC, qos=1)
+        logger.info("Subscribed to %s with QoS 1", TELEMETRY_TOPIC)
 
     def _on_message(self, client, userdata, message):
         farm_id = message.topic.split("/")[1]
@@ -54,6 +56,36 @@ class TelemetrySubscriber:
             self.client.tls_set()
         self.client.connect(self.broker_settings.mqtt_host, self.broker_settings.mqtt_port)
         self.client.loop_forever()
+
+    def start_background(self) -> None:
+        if not self.broker_settings.mqtt_host:
+            raise RuntimeError("MQTT_HOST is required to start the subscriber")
+        self.client.username_pw_set(self.broker_settings.mqtt_username, self.broker_settings.mqtt_password)
+        if self.broker_settings.mqtt_tls:
+            self.client.tls_set()
+        self.client.connect(self.broker_settings.mqtt_host, self.broker_settings.mqtt_port)
+        self.client.loop_start()
+
+    def stop(self) -> None:
+        self.client.loop_stop()
+        self.client.disconnect()
+
+    def publish_command(self, farm_id, command_id, command) -> None:
+        payload = {
+            "command_id": command_id,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "pump": command.pump,
+            "duration_sec": command.duration_sec,
+            "reason": command.reason,
+            "force_override": command.force_override,
+        }
+        result = self.client.publish(
+            COMMAND_TOPIC.format(farm_id=farm_id),
+            json.dumps(payload),
+            qos=1,
+        )
+        if result.rc != mqtt.MQTT_ERR_SUCCESS:
+            raise RuntimeError(f"MQTT command publish failed with code {result.rc}")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import AliasChoices, BaseModel, Field, field_validator
 
 
 def percentage(value: float) -> float:
@@ -17,9 +17,12 @@ class TelemetryPayload(BaseModel):
     temperature: float = Field(ge=-50, le=80)
     humidity: float
     light: float
-    rain_detected: bool
+    rain_detected: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("rain_detected", "rain"),
+    )
     water_level: float
-    pump_status: bool
+    pump_status: bool = False
 
     _humidity_range = field_validator("soil_moisture", "humidity", "light", "water_level")(percentage)
 
@@ -46,3 +49,28 @@ class ReadingResponse(TelemetryPayload):
 class HealthResponse(BaseModel):
     status: str
     database: str
+
+
+class IrrigationOverride(BaseModel):
+    pump: bool
+    duration_sec: int = Field(ge=1, le=3600)
+    reason: str = Field(min_length=1, max_length=500)
+    force_override: bool = False
+
+    @field_validator("duration_sec")
+    @classmethod
+    def duration_required_for_pump(cls, value: int, info):
+        if info.data.get("pump") is True and value <= 0:
+            raise ValueError("duration_sec must be positive when pump is enabled")
+        return value
+
+
+class IrrigationEventResponse(BaseModel):
+    farm_id: str
+    timestamp: datetime
+    duration_sec: int
+    reason: str
+    pump_status: bool
+    command_id: str | None
+
+    model_config = {"from_attributes": True}

@@ -7,6 +7,8 @@ from app.database.database import Base, engine
 from app.main import app
 from app.database.database import SessionLocal
 from app.mqtt.subscriber import process_telemetry_message
+from app.services.irrigation import create_irrigation_event
+from app.api.schemas import IrrigationOverride
 
 
 Base.metadata.drop_all(bind=engine)
@@ -52,6 +54,15 @@ def test_invalid_percentage_is_rejected():
     assert response.status_code == 422
 
 
+def test_guide_telemetry_accepts_rain_field_without_pump_status():
+    data = payload()
+    data["rain"] = data.pop("rain_detected")
+    data.pop("pump_status")
+    response = client.post("/api/farms/FARM004/telemetry", json=data)
+    assert response.status_code == 201
+    assert response.json()["rain_detected"] is False
+
+
 def test_mqtt_payload_uses_the_same_validation_and_storage_path():
     db = SessionLocal()
     try:
@@ -61,3 +72,40 @@ def test_mqtt_payload_uses_the_same_validation_and_storage_path():
 
     response = client.get("/api/farms/FARM003/latest")
     assert response.status_code == 200
+
+
+def test_irrigation_override_is_recorded():
+    response = client.post(
+        "/api/irrigation/FARM001/override",
+        json={"pump": True, "duration_sec": 45, "reason": "Manual test"},
+    )
+    assert response.status_code == 201
+    assert response.json()["duration_sec"] == 45
+
+    history = client.get("/api/irrigation/FARM001/history")
+    assert history.status_code == 200
+    assert history.json()[0]["pump_status"] is True
+
+
+def test_pump_override_requires_a_finite_duration():
+    response = client.post(
+        "/api/irrigation/FARM001/override",
+        json={"pump": True, "duration_sec": 0, "reason": "Unsafe"},
+    )
+    assert response.status_code == 422
+
+
+def test_irrigation_service_calls_command_publisher():
+    published = []
+    db = SessionLocal()
+    try:
+        create_irrigation_event(
+            db,
+            "FARM001",
+            IrrigationOverride(pump=True, duration_sec=30, reason="Test"),
+            lambda farm_id, command_id, command: published.append((farm_id, command_id, command.duration_sec)),
+        )
+    finally:
+        db.close()
+    assert published[0][0] == "FARM001"
+    assert published[0][2] == 30

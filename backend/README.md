@@ -18,12 +18,28 @@ uvicorn app.main:app --reload --port 8000
 
 Open `http://localhost:8000/docs` for the interactive API documentation.
 
+Initialize the database explicitly when needed:
+
+```text
+python -m app.database.init_db
+```
+
 The local default uses SQLite and does not require HiveMQ. Set `MQTT_ENABLED=true`
 and provide broker settings in `.env` when the broker is available.
 
 The shared `.env.example` is prefilled with the HiveMQ host, TLS port, and
 username supplied by the team. Replace only `MQTT_PASSWORD` in your local
 untracked `.env` file. Never commit that file.
+
+The FastAPI application starts the MQTT subscriber automatically when
+`MQTT_ENABLED=true`.
+
+Core irrigation endpoints:
+
+- `GET /api/irrigation/{farm_id}/history?limit=50`
+- `POST /api/irrigation/{farm_id}/override`
+
+Pump-on commands require a finite `duration_sec` between 1 and 3600 seconds.
 
 ## First telemetry request
 

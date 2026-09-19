@@ -1,7 +1,8 @@
 # MQTT Topics
 
-The backend subscribes to `smartfarm/+/telemetry`. The `+` wildcard captures
-the farm ID and the message body must follow the canonical telemetry contract.
+The backend subscribes to `smartfarm/+/telemetry` with QoS 1. The `+` wildcard
+captures the farm ID and the message body must follow the canonical telemetry
+contract. The backend publishes actuator commands with QoS 1.
 
 | Topic | Publisher | Backend behavior |
 |---|---|---|
@@ -12,3 +13,5 @@ the farm ID and the message body must follow the canonical telemetry contract.
 
 Malformed JSON, missing fields, invalid physical ranges, and a device ID that
 does not match the farm's registered device are rejected and are not stored.
+
+Every pump-on command includes a finite `duration_sec` fail-safe value.
