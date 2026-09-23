@@ -71,6 +71,23 @@ class WeatherResponse(BaseModel):
     source: str
 
 
+class SMSLogCreate(BaseModel):
+    recipient: str = Field(min_length=1, max_length=30)
+    message: str = Field(min_length=1, max_length=1000)
+    status: str = Field(min_length=1, max_length=30)
+    provider_status: str | None = None
+    provider_message_id: str | None = None
+    error_message: str | None = None
+
+
+class SMSLogResponse(SMSLogCreate):
+    id: int
+    farm_id: str
+    timestamp: datetime
+
+    model_config = {"from_attributes": True}
+
+
 class IrrigationOverride(BaseModel):
     pump: bool
     duration_sec: int = Field(ge=1, le=3600)

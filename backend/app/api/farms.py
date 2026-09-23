@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from datetime import datetime, timezone
+
 from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
@@ -7,11 +9,13 @@ from app.api.schemas import (
     FarmCreate,
     FarmResponse,
     ReadingResponse,
+    SMSLogCreate,
+    SMSLogResponse,
     TelemetryPayload,
     WeatherResponse,
 )
 from app.database.database import get_db
-from app.database.models import Farm, SensorReading
+from app.database.models import Farm, SMSLog, SensorReading
 from app.intelligence.irrigation_engine import IrrigationThresholds
 from app.intelligence.weather import WeatherData
 from app.services.advisory import AdvisoryEvaluationInput, evaluate_farm
@@ -141,11 +145,22 @@ def weather(farm_id: str, db: Session = Depends(get_db)):
     }
 
 
-@router.get("/{farm_id}/sms-history", response_model=list[dict])
+@router.get("/{farm_id}/sms-history", response_model=list[SMSLogResponse])
 def sms_history(farm_id: str, db: Session = Depends(get_db)):
     if db.get(Farm, farm_id) is None:
         raise HTTPException(status_code=404, detail="farm not found")
-    return []
+    return list(db.scalars(select(SMSLog).where(SMSLog.farm_id == farm_id).order_by(desc(SMSLog.timestamp)).limit(100)))
+
+
+@router.post("/{farm_id}/sms-history", response_model=SMSLogResponse, status_code=status.HTTP_201_CREATED)
+def save_sms_log(farm_id: str, payload: SMSLogCreate, db: Session = Depends(get_db)):
+    if db.get(Farm, farm_id) is None:
+        raise HTTPException(status_code=404, detail="farm not found")
+    log = SMSLog(farm_id=farm_id, timestamp=datetime.now(timezone.utc), **payload.model_dump())
+    db.add(log)
+    db.commit()
+    db.refresh(log)
+    return log
 
 
 @router.post("", response_model=FarmResponse, status_code=status.HTTP_201_CREATED)

@@ -64,3 +64,18 @@ class IrrigationEvent(Base):
     @property
     def duration_sec(self) -> int:
         return self.duration_seconds
+
+
+class SMSLog(Base):
+    __tablename__ = "sms_logs"
+    __table_args__ = (Index("ix_sms_logs_farm_timestamp", "farm_id", "timestamp"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    farm_id: Mapped[str] = mapped_column(ForeignKey("farms.farm_id"), index=True)
+    recipient: Mapped[str] = mapped_column(String(30))
+    message: Mapped[str] = mapped_column(String(1000))
+    status: Mapped[str] = mapped_column(String(30))
+    provider_status: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    provider_message_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    error_message: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)

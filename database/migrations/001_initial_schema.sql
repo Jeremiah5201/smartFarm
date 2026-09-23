@@ -46,3 +46,18 @@ CREATE TABLE IF NOT EXISTS irrigation_events (
     pump_status BOOLEAN NOT NULL,
     command_id VARCHAR(80) UNIQUE
 );
+
+CREATE TABLE IF NOT EXISTS sms_logs (
+    id INTEGER PRIMARY KEY,
+    farm_id VARCHAR(50) NOT NULL REFERENCES farms(farm_id),
+    recipient VARCHAR(30) NOT NULL,
+    message VARCHAR(1000) NOT NULL,
+    status VARCHAR(30) NOT NULL,
+    provider_status VARCHAR(80),
+    provider_message_id VARCHAR(120),
+    error_message VARCHAR(500),
+    timestamp DATETIME NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_sms_logs_farm_timestamp
+    ON sms_logs (farm_id, timestamp);
