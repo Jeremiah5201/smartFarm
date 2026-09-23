@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from pydantic import AliasChoices, BaseModel, Field, field_validator
 
@@ -11,7 +11,7 @@ def percentage(value: float) -> float:
 
 class TelemetryPayload(BaseModel):
     device_id: str = Field(min_length=1, max_length=50)
-    timestamp: datetime
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     soil_moisture: float
     soil_ph: float = Field(ge=0, le=14)
     temperature: float = Field(ge=-50, le=80)
@@ -49,6 +49,26 @@ class ReadingResponse(TelemetryPayload):
 class HealthResponse(BaseModel):
     status: str
     database: str
+
+
+class AdvisoryResponse(BaseModel):
+    type: str
+    status: str
+    severity: str
+    message: str
+    reason: str
+    irrigation_required: bool
+    irrigation_reason: str
+    duration_seconds: int
+
+
+class WeatherResponse(BaseModel):
+    temperature: float | None
+    humidity: float | None
+    rain_probability: float | None
+    description: str
+    location: str | None
+    source: str
 
 
 class IrrigationOverride(BaseModel):

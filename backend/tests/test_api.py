@@ -63,6 +63,14 @@ def test_guide_telemetry_accepts_rain_field_without_pump_status():
     assert response.json()["rain_detected"] is False
 
 
+def test_telemetry_without_device_timestamp_uses_ingestion_time():
+    data = payload()
+    data.pop("timestamp")
+    response = client.post("/api/farms/FARM005/telemetry", json=data)
+    assert response.status_code == 201
+    assert response.json()["timestamp"]
+
+
 def test_mqtt_payload_uses_the_same_validation_and_storage_path():
     db = SessionLocal()
     try:
@@ -93,6 +101,20 @@ def test_pump_override_requires_a_finite_duration():
         json={"pump": True, "duration_sec": 0, "reason": "Unsafe"},
     )
     assert response.status_code == 422
+
+
+def test_dashboard_intelligence_routes_return_contracts():
+    advisory = client.get("/api/farms/FARM001/advisory")
+    assert advisory.status_code == 200
+    assert advisory.json()[0]["severity"] in {"INFO", "WARNING", "CRITICAL"}
+
+    weather = client.get("/api/farms/FARM001/weather")
+    assert weather.status_code == 200
+    assert weather.json()["source"] == "field telemetry"
+
+    sms_history = client.get("/api/farms/FARM001/sms-history")
+    assert sms_history.status_code == 200
+    assert sms_history.json() == []
 
 
 def test_irrigation_service_calls_command_publisher():

@@ -120,7 +120,16 @@ def _post_form(
     try:
         with urlopen(request, timeout=timeout) as response:
             return response.read()
-    except (HTTPError, URLError, TimeoutError) as error:
+    except HTTPError as error:
+        try:
+            detail = error.read().decode("utf-8", errors="replace").strip()
+        except Exception:
+            detail = ""
+        suffix = f": {detail[:300]}" if detail else ""
+        raise RuntimeError(
+            f"Africa's Talking SMS request failed ({error.code}){suffix}"
+        ) from error
+    except (URLError, TimeoutError) as error:
         raise RuntimeError("Africa's Talking SMS request failed") from error
 
 

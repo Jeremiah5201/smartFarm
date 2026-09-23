@@ -37,14 +37,20 @@ class TelemetrySubscriber:
         if reason_code.is_failure:
             logger.error("MQTT connection failed: %s", reason_code)
             return
-        client.subscribe(TELEMETRY_TOPIC, qos=1)
-        logger.info("Subscribed to %s with QoS 1", TELEMETRY_TOPIC)
+        topic = self.broker_settings.mqtt_telemetry_topic or TELEMETRY_TOPIC
+        result, _ = client.subscribe(topic, qos=1)
+        if result != mqtt.MQTT_ERR_SUCCESS:
+            logger.error("MQTT subscription failed for %s with code %s", topic, result)
+            return
+        logger.info("Subscribed to %s with QoS 1", topic)
 
     def _on_message(self, client, userdata, message):
         farm_id = message.topic.split("/")[1]
         db = self.session_factory()
         try:
             process_telemetry_message(db, farm_id, message.payload)
+        except Exception:
+            logger.exception("Failed to process telemetry from %s", message.topic)
         finally:
             db.close()
 
