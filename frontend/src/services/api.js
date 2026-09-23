@@ -22,6 +22,10 @@ async function request(path, options = {}) {
 export const api = {
   health: () => request("/api/health"),
   farms: () => request("/api/farms"),
+  createFarm: (farm) => request("/api/farms", {
+    method: "POST",
+    body: JSON.stringify(farm),
+  }),
   latest: (farmId) => request(`/api/farms/${farmId}/latest`),
   readings: (farmId, limit = 12) => request(`/api/farms/${farmId}/readings?limit=${limit}`),
   irrigationHistory: (farmId, limit = 8) => request(`/api/irrigation/${farmId}/history?limit=${limit}`),

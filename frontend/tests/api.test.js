@@ -14,6 +14,12 @@ describe("SmartFarm API client", () => {
     expect(fetch).toHaveBeenCalledWith("/api/farms", expect.objectContaining({ headers: { "Content-Type": "application/json" } }));
   });
 
+  it("creates a farm through the backend", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 201, json: async () => ({ farm_id: "FARM002" }) }));
+    await expect(api.createFarm({ farm_id: "FARM002", farm_name: "North Field", device_id: "ESP32-02" })).resolves.toEqual({ farm_id: "FARM002" });
+    expect(fetch).toHaveBeenCalledWith("/api/farms", expect.objectContaining({ method: "POST", body: JSON.stringify({ farm_id: "FARM002", farm_name: "North Field", device_id: "ESP32-02" }) }));
+  });
+
   it("surfaces backend error details", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 404, json: async () => ({ detail: "farm not found" }) }));
     await expect(api.latest("UNKNOWN")).rejects.toThrow("farm not found");

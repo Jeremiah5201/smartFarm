@@ -67,3 +67,38 @@ select { min-width: 190px; padding: 9px 10px; font-size: 12px; letter-spacing: 0
 @media (max-width: 1080px) { .metric-grid { grid-template-columns: repeat(3, 1fr); }.content-grid, .insight-grid { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .sidebar { width: 68px; padding: 22px 10px; }.brand span:not(.brand-mark), .nav-link:not(.active) { display: none; }.nav-link { text-align: center; }.nav-link span { width: auto; }.sidebar-note { display: none; }.main-content { padding: 26px 18px 42px; }.topbar, .hero-strip, .section-heading { display: block; }.top-actions { margin-top: 22px; align-items: end; }.farm-picker { flex: 1; }.hero-strip { min-height: 430px; }.hero-visual { inset: 44% 0 0; clip-path: polygon(0 12%, 100% 0, 100% 100%, 0 100%); }.hero-meta { position: absolute; top: 24px; right: 22px; justify-items: end; margin-top: 0; }.metric-grid { grid-template-columns: repeat(2, 1fr); }.coming-soon { display: block; }.coming-soon strong { display: block; margin-top: 8px; } }
 @media (max-width: 430px) { .metric-grid { grid-template-columns: 1fr; }.top-actions { display: grid; grid-template-columns: 1fr auto; }.refresh-button { align-self: end; }.hero-strip { padding: 22px; }.metric-card { min-height: 120px; } }
+
+/* Dashboard shell and account workflows */
+.app-shell { display: block; }
+.main-content { width: min(1400px, 100%); padding: 0 52px 64px; }
+.topbar { position: sticky; top: 0; z-index: 10; min-height: 78px; margin: 0 -52px; padding: 0 52px; border-bottom: 1px solid #dce7e2; background: rgba(244,247,245,.94); backdrop-filter: blur(16px); }
+.top-nav { display: flex; align-items: center; gap: 6px; margin-right: auto; }
+.top-nav .nav-link { padding: 9px 12px; color: #718891; font-size: 12px; font-weight: 700; }
+.top-nav .nav-link.active, .top-nav .nav-link:hover { color: #16715f; background: #dcefe7; }
+.account-actions { display: flex; align-items: center; gap: 12px; }
+.add-farm-button, .profile-button { display: inline-flex; align-items: center; gap: 8px; border: 0; background: transparent; color: #365668; font-size: 12px; font-weight: 700; }
+.add-farm-button { padding: 9px 11px; border: 1px solid #c9dfd8; color: #16715f; background: #e7f4ee; }
+.profile-button { padding: 4px; }
+.avatar { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; color: #fff; background: #e18b4c; font: 700 13px 'Space Grotesk', sans-serif; }
+.avatar.large { width: 46px; height: 46px; font-size: 18px; }
+.chevron { color: #91a4aa; font-size: 15px; }
+.page-intro { display: flex; align-items: end; justify-content: space-between; gap: 24px; padding-top: 38px; }
+.intro-copy { margin: 9px 0 0; color: #789098; font-size: 13px; }
+.modal-backdrop { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 20px; background: rgba(16,42,67,.42); backdrop-filter: blur(5px); }
+.modal { position: relative; width: min(480px, 100%); padding: 32px; border: 1px solid #d8e8e2; background: #fbfdfb; box-shadow: 0 24px 80px rgba(16,42,67,.2); }
+.modal h2 { margin: 4px 0 24px; font-size: 27px; }
+.modal-close { position: absolute; top: 18px; right: 20px; width: 30px; height: 30px; border: 0; color: #6d858c; background: #edf5f1; font-size: 21px; line-height: 1; }
+.modal-form { display: grid; gap: 14px; }
+.modal-form label { display: grid; gap: 6px; color: #617b84; font-size: 11px; font-weight: 700; }
+.modal-form input { width: 100%; padding: 11px 12px; border-color: #d5e4df; }
+.form-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.profile-editor { display: flex; align-items: center; gap: 13px; margin: -6px 0 8px; padding: 13px; background: #edf6f1; }
+.profile-editor strong { color: #17324d; font: 600 15px 'Space Grotesk', sans-serif; }
+.profile-editor p { margin: 4px 0 0; color: #749098; font-size: 11px; }
+@media (max-width: 760px) {
+	.main-content { padding: 0 18px 42px; }
+	.topbar { position: static; display: grid; grid-template-columns: 1fr auto; gap: 12px; margin: 0 -18px; padding: 14px 18px; }
+	.top-nav { grid-column: 1 / -1; grid-row: 2; justify-content: space-between; margin: 0; border-top: 1px solid #e1ebe7; padding-top: 10px; }
+	.profile-name, .add-farm-button span { display: none; }
+	.page-intro { display: block; padding-top: 28px; }
+}

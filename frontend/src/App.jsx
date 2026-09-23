@@ -30,9 +30,20 @@ function MetricCard({ field, label, unit, tone, value }) {
   );
 }
 
+const defaultProfile = { name: "Amina Okafor", phone: "+234 803 555 0184", email: "amina@smartfarm.local", location: "Ibadan, Nigeria" };
+
+function Modal({ title, eyebrow, children, onClose }) {
+  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><section className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><button className="modal-close" onClick={onClose} aria-label="Close dialog">×</button><p className="eyebrow">{eyebrow}</p><h2 id="modal-title">{title}</h2>{children}</section></div>;
+}
+
 function App() {
   const [farmId, setFarmId] = useState("");
   const [slide, setSlide] = useState(0);
+  const [modal, setModal] = useState(null);
+  const [profile, setProfile] = useState(() => {
+    try { return { ...defaultProfile, ...JSON.parse(localStorage.getItem("smartfarm-profile") || "{}") }; } catch { return defaultProfile; }
+  });
+  const [farmState, setFarmState] = useState({ saving: false, error: "" });
   const [commandState, setCommandState] = useState({ saving: false, message: "", error: "" });
   const { farms, latest, readings, history, advisory, weather, smsHistory, health, latestError, loading, refreshing, error, reload } = useFarmData(farmId);
   const selectedFarm = useMemo(() => farms.find((farm) => farm.farm_id === (farmId || farms[0]?.farm_id)), [farms, farmId]);
@@ -67,16 +78,34 @@ function App() {
     }
   }
 
+  async function submitFarm(event) {
+    event.preventDefault();
+    const newFarm = Object.fromEntries(new FormData(event.currentTarget).entries());
+    setFarmState({ saving: true, error: "" });
+    try {
+      await api.createFarm(newFarm);
+      setFarmId(newFarm.farm_id);
+      setModal(null);
+      setFarmState({ saving: false, error: "" });
+      reload();
+    } catch (submitError) {
+      setFarmState({ saving: false, error: submitError.message });
+    }
+  }
+
+  function submitProfile(event) {
+    event.preventDefault();
+    const nextProfile = Object.fromEntries(new FormData(event.currentTarget).entries());
+    setProfile(nextProfile);
+    localStorage.setItem("smartfarm-profile", JSON.stringify(nextProfile));
+    setModal(null);
+  }
+
   return (
     <div className="app-shell">
-      <aside className="sidebar">
-        <div className="brand"><span className="brand-mark">SF</span><span>SmartFarm<small>FIELD OPERATIONS</small></span></div>
-        <nav><a className="nav-link active" href="#overview"><span>◈</span> Overview</a><a className="nav-link" href="#irrigation"><span>◌</span> Irrigation</a><a className="nav-link" href="#activity"><span>≋</span> Activity</a></nav>
-        <div className="sidebar-note"><span className={`pulse ${health?.status !== "ok" ? "offline" : ""}`} />{health?.status === "ok" ? "Backend connected through REST API" : "Backend connection needs attention"}</div>
-      </aside>
-
       <main className="main-content">
-        <header className="topbar"><div><p className="eyebrow">FIELD CONTROL ROOM</p><h1>Farm overview</h1></div><div className="top-actions"><label className="farm-picker">Farm<select value={activeFarmId || ""} onChange={(event) => setFarmId(event.target.value)}><option value="" disabled>Select a farm</option>{farms.map((farm) => <option key={farm.farm_id} value={farm.farm_id}>{farm.farm_name} · {farm.farm_id}</option>)}</select></label><button className="refresh-button" onClick={reload} disabled={refreshing}>{refreshing ? "Refreshing" : "Refresh data"}</button></div></header>
+        <header className="topbar"><div className="brand"><span className="brand-mark">SF</span><span>SmartFarm<small>FIELD OPERATIONS</small></span></div><nav className="top-nav"><a className="nav-link active" href="#overview">Overview</a><a className="nav-link" href="#irrigation">Irrigation</a><a className="nav-link" href="#activity">Activity</a></nav><div className="account-actions"><button className="add-farm-button" onClick={() => setModal("farm")}>＋ <span>Add farm</span></button><button className="profile-button" onClick={() => setModal("profile")}><span className="avatar">{profile.name.charAt(0)}</span><span className="profile-name">{profile.name}</span><span className="chevron">⌄</span></button></div></header>
+        <section className="page-intro"><div><p className="eyebrow">FIELD CONTROL ROOM</p><h1>Farm overview</h1><p className="intro-copy">A calmer way to understand what your fields need next.</p></div><div className="top-actions"><label className="farm-picker">Active farm<select value={activeFarmId || ""} onChange={(event) => setFarmId(event.target.value)}><option value="" disabled>Select a farm</option>{farms.map((farm) => <option key={farm.farm_id} value={farm.farm_id}>{farm.farm_name} · {farm.farm_id}</option>)}</select></label><button className="refresh-button" onClick={reload} disabled={refreshing}>{refreshing ? "Refreshing" : "Refresh data"}</button></div></section>
 
         {loading && <section className="state-panel"><div className="spinner" /><h2>Connecting to your farm data</h2><p>Reading the backend API and preparing the dashboard.</p></section>}
         {!loading && error && <section className="state-panel error-state"><h2>Backend unavailable</h2><p>{error}</p><button className="primary-button" onClick={reload}>Try again</button></section>}
@@ -95,6 +124,8 @@ function App() {
           <section className="section-block readings-section"><div className="section-heading"><div><p className="eyebrow">DATABASE HISTORY</p><h2>Recent telemetry</h2></div><span className="updated">{readings.length} readings loaded</span></div><div className="table-wrap"><table><thead><tr><th>Timestamp</th><th>Moisture</th><th>pH</th><th>Temperature</th><th>Humidity</th><th>Rain</th></tr></thead><tbody>{readings.map((reading) => <tr key={`${reading.timestamp}-${reading.device_id}`}><td>{formatTime(reading.timestamp)}</td><td>{reading.soil_moisture}%</td><td>{reading.soil_ph}</td><td>{reading.temperature}°C</td><td>{reading.humidity}%</td><td><span className={`rain-tag ${reading.rain_detected ? "yes" : "no"}`}>{reading.rain_detected ? "Detected" : "Clear"}</span></td></tr>)}</tbody></table>{readings.length === 0 && <div className="empty-state">Telemetry will appear here after the ESP32 publishes a reading.</div>}</div></section>
           <section className="insight-grid"><div className="insight-panel"><p className="eyebrow">FIELD ADVISORY</p><h2>{advisory[0]?.type || "No advisory yet"}</h2><p>{advisory[0]?.message || "The intelligence service has not published a recommendation."}</p><span className="insight-meta">{advisory[0]?.severity || "WAITING"}</span></div><div className="insight-panel weather-panel"><p className="eyebrow">WEATHER CONTEXT</p><h2>{weather?.temperature != null ? `${weather.temperature}°C · ${displayValue(weather.description, "Current conditions")}` : "Weather unavailable"}</h2><p>{weather?.rain_probability != null ? `Rain probability ${weather.rain_probability}%${weather.location ? ` in ${weather.location}` : ""}.` : "Forecast data is not available yet."}</p><span className="insight-meta">{displayValue(weather?.source, "NOT CONNECTED")}</span></div><div className="insight-panel"><p className="eyebrow">SMS HISTORY</p><h2>{smsHistory.length ? `${smsHistory.length} messages` : "No messages yet"}</h2><p>{smsHistory.length ? "Recent farmer notifications are available." : "SMS notifications will appear after the advisory service sends one."}</p><span className="insight-meta">FARMER ALERTS</span></div></section>
         </>}
+        {modal === "farm" && <Modal eyebrow="NEW FIELD" title="Add a farm" onClose={() => setModal(null)}><form className="modal-form" onSubmit={submitFarm}><label>Farm ID<input name="farm_id" placeholder="FARM002" required /></label><label>Farm name<input name="farm_name" placeholder="North Field" required /></label><label>Device ID<input name="device_id" placeholder="ESP32-02" required /></label><div className="form-columns"><label>Location<input name="location" placeholder="Oyo, Nigeria" /></label><label>Crop<input name="crop" placeholder="Tomatoes" /></label></div><button className="primary-button" disabled={farmState.saving}>{farmState.saving ? "Creating farm..." : "Create farm"}</button>{farmState.error && <p className="form-error">{farmState.error}</p>}</form></Modal>}
+        {modal === "profile" && <Modal eyebrow="YOUR ACCOUNT" title="Profile settings" onClose={() => setModal(null)}><form className="modal-form" onSubmit={submitProfile}><div className="profile-editor"><span className="avatar large">{profile.name.charAt(0)}</span><div><strong>{profile.name}</strong><p>Keep your contact details current for field alerts.</p></div></div><label>Full name<input name="name" defaultValue={profile.name} required /></label><label>Phone number<input name="phone" type="tel" defaultValue={profile.phone} required /></label><label>Email address<input name="email" type="email" defaultValue={profile.email} required /></label><label>Home location<input name="location" defaultValue={profile.location} /></label><button className="primary-button">Save profile</button></form></Modal>}
       </main>
     </div>
   );
